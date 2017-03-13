@@ -1,0 +1,18 @@
+apply plugin: 'groovy'
+
+targetCompatibility = '1.8'
+sourceCompatibility = '1.8'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    runtime files(org.gradle.internal.jvm.Jvm.current().toolsJar)
+    compile 'org.codehaus.groovy:groovy-all:2.4.9'
+    testCompile 'junit:junit:4.12'
+}
+
+compileJava {
+    options.compilerArgs += ["-XDignore.symbol.file=true"]
+}

@@ -27,15 +27,87 @@ class MonitoredHostTest {
              * - java.rt.vmArgs
              * - sun.rt.javaCommand
              */
-            vm.findByPattern('.*').each { monitor ->
-                if (monitor instanceof StringMonitor)
-                    println "${monitor.name} : ${monitor.stringValue()}"
-                if (monitor instanceof IntegerMonitor)
-                    println "${monitor.name} : ${monitor.intValue()}"
-                if (monitor instanceof LongMonitor)
-                    println "${monitor.name} : ${monitor.longValue()}"
 
-            }
+            println getJavaCommand(vm)
+            println getJvmArgs(vm)
+            println "Total Allocated : ${getTotalAlloc(vm)}"
+            println "Total Used      : ${getTotalUsed(vm)}"
+
+//            vm.findByPattern('.*').each { monitor ->
+//                if (monitor instanceof StringMonitor)
+//                    println "S: ${monitor.name} : ${monitor.stringValue()}"
+//                if (monitor instanceof IntegerMonitor)
+//                    println "I: ${monitor.name} : ${monitor.intValue()}"
+//                if (monitor instanceof LongMonitor)
+//                    println "L: ${monitor.name} : ${monitor.longValue()}"
+//            }
         }
+    }
+
+    static String getJavaCommand(MonitoredVm vm) {
+        vm.findByName('sun.rt.javaCommand').stringValue()
+    }
+
+    static String getJvmArgs(MonitoredVm vm) {
+        vm.findByName('java.rt.vmArgs').stringValue()
+    }
+
+    static long getTotalAlloc(MonitoredVm vm) {
+        /**
+         * Pay attention:
+         *
+         * youngAlloc + OldAlloc != edenAlloc + survivor0Alloc + survivor1Alloc + tenuredAlloc
+         *
+         * Compare with the way JVisualVM reports "Size" under the "Heap" tab. If you add the
+         * individual numbers, they don't match.
+         */
+        return getYoungAlloc(vm) + getOldAlloc(vm)
+    }
+
+    static long getTotalUsed(MonitoredVm vm) {
+        return getEdenUsed(vm) +
+            getSurvivor0Used(vm) +
+            getSurvivor1Used(vm) +
+            getTenuredUsed(vm)
+    }
+
+    static long getYoungAlloc(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.0.capacity').longValue()
+    }
+    
+    static long getEdenAlloc(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.0.space.0.capacity').longValue()
+    }
+
+    static long getEdenUsed(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.0.space.0.used').longValue()
+    }
+
+    static long getSurvivor0Alloc(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.0.space.1.capacity').longValue()
+    }
+
+    static long getSurvivor0Used(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.0.space.1.used').longValue()
+    }
+
+    static long getSurvivor1Alloc(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.0.space.2.capacity').longValue()
+    }
+
+    static long getSurvivor1Used(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.0.space.2.used').longValue()
+   }
+
+    static long getOldAlloc(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.1.capacity').longValue()
+    }
+
+    static long getTenuredAlloc(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.1.space.0.capacity').longValue()
+    }
+
+    static long getTenuredUsed(MonitoredVm vm) {
+        vm.findByName('sun.gc.generation.1.space.0.used').longValue()
     }
 }

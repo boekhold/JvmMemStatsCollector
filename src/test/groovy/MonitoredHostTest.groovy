@@ -11,6 +11,30 @@ import sun.jvmstat.monitor.VmIdentifier
 class MonitoredHostTest {
     @Ignore
     @Test
+    void listAllMonitors() {
+        HostIdentifier thisHostId = new HostIdentifier((String)null)
+        MonitoredHost monitoredHost = MonitoredHost.getMonitoredHost(thisHostId)
+
+        monitoredHost.activeVms().each { id ->
+            // 'id' is the OS PID...
+            println "ID: $id --------------------------------------------------------------------------"
+
+            VmIdentifier jvmId = new VmIdentifier("//${id}?mode=r")
+            MonitoredVm vm = monitoredHost.getMonitoredVm(jvmId)
+
+            vm.findByPattern('.*').each { monitor ->
+                if (monitor instanceof StringMonitor)
+                    println "S: ${monitor.name} : ${monitor.stringValue()}"
+                if (monitor instanceof IntegerMonitor)
+                    println "I: ${monitor.name} : ${monitor.intValue()}"
+                if (monitor instanceof LongMonitor)
+                    println "L: ${monitor.name} : ${monitor.longValue()}"
+            }
+        }
+    }
+
+    @Ignore
+    @Test
     void monitoredHostTest() {
         HostIdentifier thisHostId = new HostIdentifier((String)null)
         MonitoredHost monitoredHost = MonitoredHost.getMonitoredHost(thisHostId)
@@ -32,15 +56,6 @@ class MonitoredHostTest {
             println getJvmArgs(vm)
             println "Total Allocated : ${getTotalAlloc(vm)}"
             println "Total Used      : ${getTotalUsed(vm)}"
-
-//            vm.findByPattern('.*').each { monitor ->
-//                if (monitor instanceof StringMonitor)
-//                    println "S: ${monitor.name} : ${monitor.stringValue()}"
-//                if (monitor instanceof IntegerMonitor)
-//                    println "I: ${monitor.name} : ${monitor.intValue()}"
-//                if (monitor instanceof LongMonitor)
-//                    println "L: ${monitor.name} : ${monitor.longValue()}"
-//            }
         }
     }
 

@@ -44,6 +44,28 @@ class MonitoredHostTest {
         }
     }
 
+    @Ignore
+    @Test
+    void monitorSinglePID() {
+        HostIdentifier thisHostId = new HostIdentifier((String)null)
+        MonitoredHost monitoredHost = MonitoredHost.getMonitoredHost(thisHostId)
+
+        VmIdentifier jvmId = new VmIdentifier("//248?mode-r")
+        MonitoredVm vm = monitoredHost.getMonitoredVm(jvmId)
+
+        println getJavaCommand(vm)
+        println getJvmArgs(vm)
+
+        println "---------------"
+
+        (0..50).each {
+            println "Total Allocated : ${getTotalAlloc(vm)}"
+            println "Total Used      : ${getTotalUsed(vm)}"
+            println "---------------"
+            sleep 5000
+        }
+    }
+
     static String getJavaCommand(MonitoredVm vm) {
         vm.findByName('sun.rt.javaCommand').stringValue()
     }

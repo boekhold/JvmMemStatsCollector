@@ -1,22 +1,30 @@
-import sun.jvmstat.monitor.HostIdentifier
-import sun.jvmstat.monitor.Monitor
-import sun.jvmstat.monitor.MonitoredHost
-import sun.jvmstat.monitor.MonitoredVm
-import sun.jvmstat.monitor.VmIdentifier
+import sun.jvmstat.monitor.*
+import sun.jvmstat.monitor.event.HostEvent
+import sun.jvmstat.monitor.event.HostListener
+import sun.jvmstat.monitor.event.VmStatusChangeEvent
 
-class JvmMonitor {
+class JvmMonitor implements HostListener {
     private static HostIdentifier thisHostId = new HostIdentifier((String)null)
     private static MonitoredHost monitoredHost = MonitoredHost.getMonitoredHost(thisHostId)
 
-    private MonitoredVm theVm
+    private MonitoredVm vm
+    private List<String> commandLinePatterns
+    private List<String> vmArgsPatterns
 
-    private JvmMonitor(MonitoredVm vm) {
-        this.theVm = vm
+    private JvmMonitor() {
     }
 
     static JvmMonitor getJvmMonitor(List<String> commandLinePatterns, List<String> vmArgsPatterns) {
-        def activeVms = monitoredHost.activeVms()
-        def vm = activeVms.findResult { id ->
+        JvmMonitor jvmMonitor = new JvmMonitor()
+        jvmMonitor.commandLinePatterns = commandLinePatterns
+        jvmMonitor.vmArgsPatterns = vmArgsPatterns
+        monitoredHost.addHostListener(jvmMonitor)
+
+        return jvmMonitor
+    }
+
+    private static MonitoredVm getMonitoredVm(List<String> commandLinePatterns, List<String> vmArgsPatterns) {
+        def vm = monitoredHost.activeVms().findResult { id ->
             VmIdentifier jvmId = new VmIdentifier("//${id}?mode=r")
             MonitoredVm vm = monitoredHost.getMonitoredVm(jvmId)
 
@@ -31,17 +39,45 @@ class JvmMonitor {
                     vmArgs =~ pattern
                 }
             }
+
             return match ? vm : null
         }
-
-        return vm ? new JvmMonitor(vm) : null
+        //println "getMonitoredVm: ${vm ? vm.vmIdentifier.localVmId : 'n/a'}"
+        return vm
     }
 
-    Monitor findByName(name) {
-        theVm.findByName(name)
+
+    Monitor findByName(name) throws MonitorException {
+        if (vm)
+            return vm.findByName(name)
+
+        // not connected yet, or disconnected
+        vm = getMonitoredVm(commandLinePatterns, vmArgsPatterns)
+        return vm?.findByName(name)
     }
 
-    List<Monitor> findByPattern(pattern) {
-        theVm.findByPattern(pattern)
+    List<Monitor> findByPattern(pattern) throws MonitorException {
+        if (vm)
+            return vm.findByPattern(pattern)
+
+        // not connected yet, or disconnected
+        vm = getMonitoredVm(commandLinePatterns, vmArgsPatterns)
+        return vm?.findByPattern(pattern)
+    }
+
+    @Override
+    void vmStatusChanged(VmStatusChangeEvent vmStatusChangeEvent) {
+        if (vm && vmStatusChangeEvent.terminated.contains(vm.vmIdentifier.localVmId as Integer)) {
+            // our VM has died, need to explicitly clean up, because the current
+            // vm object seems to remain valid if we don't do this!
+            vm.detach()
+            vm = null
+        }
+    }
+
+    @Override
+    void disconnected(HostEvent hostEvent) {
+        // we're monitoring only the local host, should never
+        // get disconnected
     }
 }

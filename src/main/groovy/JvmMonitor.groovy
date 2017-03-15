@@ -3,19 +3,24 @@ import sun.jvmstat.monitor.event.HostEvent
 import sun.jvmstat.monitor.event.HostListener
 import sun.jvmstat.monitor.event.VmStatusChangeEvent
 
-class JvmMonitor implements HostListener {
+class JvmMonitor implements HostListener, Runnable {
     private static HostIdentifier thisHostId = new HostIdentifier((String)null)
     private static MonitoredHost monitoredHost = MonitoredHost.getMonitoredHost(thisHostId)
 
     private MonitoredVm vm
+
+    private String name
     private List<String> commandLinePatterns
     private List<String> vmArgsPatterns
+
+    private List<StatListener> listeners = new LinkedList<>()
 
     private JvmMonitor() {
     }
 
-    static JvmMonitor getJvmMonitor(List<String> commandLinePatterns, List<String> vmArgsPatterns) {
+    static JvmMonitor getJvmMonitor(String name, List<String> commandLinePatterns, List<String> vmArgsPatterns) {
         JvmMonitor jvmMonitor = new JvmMonitor()
+        jvmMonitor.name = name
         jvmMonitor.commandLinePatterns = commandLinePatterns
         jvmMonitor.vmArgsPatterns = vmArgsPatterns
         monitoredHost.addHostListener(jvmMonitor)
@@ -46,6 +51,36 @@ class JvmMonitor implements HostListener {
         return vm
     }
 
+    void addStatListener(StatListener listener) {
+        listeners << listener
+    }
+
+    @Override
+    void run() {
+        def youngSize = findByName('sun.gc.generation.0.capacity')?.longValue()
+        def oldSize   = findByName('sun.gc.generation.1.capacity')?.longValue()
+
+        def edenUsed = findByName('sun.gc.generation.0.space.0.used')?.longValue()
+        def s0Used   = findByName('sun.gc.generation.0.space.1.used')?.longValue()
+        def s1Used   = findByName('sun.gc.generation.0.space.2.used')?.longValue()
+        def oldUsed  = findByName('sun.gc.generation.1.space.0.used')?.longValue()
+
+        // Assumption: if we could get "youngSize" there's no reason we couldn't get
+        // the other values as well.
+        // Can't use groovy-truth here because youngSize could be zero, which fails
+        // groovy-truth.
+        if (youngSize != null) {
+            def evt = new JvmEvent()
+            evt.name = name
+            evt.timestamp = new Date()
+            evt.size = youngSize+oldSize
+            evt.used = edenUsed+s0Used+s1Used+oldUsed
+
+            listeners.each { listener ->
+                listener.onStatEvent(evt)
+            }
+        }
+    }
 
     Monitor findByName(name) throws MonitorException {
         if (vm)

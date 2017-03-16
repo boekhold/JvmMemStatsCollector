@@ -70,11 +70,13 @@ class JvmMonitor implements HostListener, Runnable {
         // Can't use groovy-truth here because youngSize could be zero, which fails
         // groovy-truth.
         if (youngSize != null) {
-            def evt = new JvmEvent()
-            evt.name = name
-            evt.timestamp = new Date()
-            evt.size = youngSize+oldSize
-            evt.used = edenUsed+s0Used+s1Used+oldUsed
+            //noinspection GroovyAssignabilityCheck
+            def evt = new JvmEvent(
+                name,
+                new Date(),
+                youngSize+oldSize,
+                edenUsed+s0Used+s1Used+oldUsed
+            )
 
             listeners.each { listener ->
                 listener.onStatEvent(evt)

@@ -10,6 +10,7 @@ repositories {
 dependencies {
     compile files(org.gradle.internal.jvm.Jvm.current().toolsJar)
     compile 'org.codehaus.groovy:groovy-all:2.4.9'
+    compile 'com.h2database:h2:1.4.194'
     testCompile 'junit:junit:4.12'
 }
 

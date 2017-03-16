@@ -1,9 +1,13 @@
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import sun.jvmstat.monitor.*
 import sun.jvmstat.monitor.event.HostEvent
 import sun.jvmstat.monitor.event.HostListener
 import sun.jvmstat.monitor.event.VmStatusChangeEvent
 
 class JvmMonitor implements HostListener, Runnable {
+    private static Logger LOG = LoggerFactory.getLogger(JvmMonitor.class)
+
     private static HostIdentifier thisHostId = new HostIdentifier((String)null)
     private static MonitoredHost monitoredHost = MonitoredHost.getMonitoredHost(thisHostId)
 
@@ -16,6 +20,10 @@ class JvmMonitor implements HostListener, Runnable {
     private List<StatListener> listeners = new LinkedList<>()
 
     private JvmMonitor() {
+    }
+
+    def stop() {
+        vm?.detach()
     }
 
     static JvmMonitor getJvmMonitor(String name, List<String> commandLinePatterns, List<String> vmArgsPatterns) {
@@ -90,6 +98,9 @@ class JvmMonitor implements HostListener, Runnable {
 
         // not connected yet, or disconnected
         vm = getMonitoredVm(commandLinePatterns, vmArgsPatterns)
+        if (vm) {
+            LOG.info('JvmMonitor \'{}\': detected host PID {}', this.name, vm.vmIdentifier.localVmId)
+        }
         return vm?.findByName(name)
     }
 
@@ -99,6 +110,9 @@ class JvmMonitor implements HostListener, Runnable {
 
         // not connected yet, or disconnected
         vm = getMonitoredVm(commandLinePatterns, vmArgsPatterns)
+        if (vm) {
+            LOG.info('JvmMonitor \'{}\': detected host PID {}', this.name, vm.vmIdentifier.localVmId)
+        }
         return vm?.findByPattern(pattern)
     }
 

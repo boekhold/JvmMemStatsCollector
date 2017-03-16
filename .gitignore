@@ -141,3 +141,4 @@ local.properties
 /JvmMemStatsCollector.iml
 /.idea/
 /.gradle/
+!/.idea/runConfigurations/

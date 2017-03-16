@@ -1,6 +1,10 @@
 import groovy.sql.Sql
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 class DbPersister implements StatListener {
+    private static Logger LOG = LoggerFactory.getLogger(DbPersister.class)
+
     private static String INSERT_STATEMENT =
         'INSERT INTO JVM_STATS (NAME, STAMP, SIZE, USED) VALUES (?,?,?,?)'
 
@@ -10,6 +14,8 @@ class DbPersister implements StatListener {
         def url = "jdbc:h2:${dbServer.url}/${dbLoc};INIT=RUNSCRIPT FROM 'classpath:/schema.sql'"
         conn = Sql.newInstance(url, usr, pwd, 'org.h2.Driver')
         conn.cacheStatements = true
+
+        LOG.info('Connected to DB on {}', "jdbc:h2:${dbServer.url}/${dbLoc}")
     }
 
     @Override
